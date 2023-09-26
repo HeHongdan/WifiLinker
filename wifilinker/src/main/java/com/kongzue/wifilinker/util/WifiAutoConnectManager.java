@@ -1,5 +1,6 @@
 package com.kongzue.wifilinker.util;
 
+import android.annotation.SuppressLint;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
@@ -19,32 +20,40 @@ import java.util.List;
 public class WifiAutoConnectManager {
     private static final String TAG = WifiAutoConnectManager.class
             .getSimpleName();
-    
+
     public static WifiManager wifiManager = null;
     private static WifiAutoConnectManager mWifiAutoConnectManager;
-    
+
     // 定义几种加密方式，一种是WEP，一种是WPA，还有没有密码的情况
     public enum WifiCipherType {
-        WIFICIPHER_WEP, WIFICIPHER_WPA, WIFICIPHER_NOPASS, WIFICIPHER_INVALID
+        WIFICIPHER_WEP,
+        WIFICIPHER_WPA,
+        WIFICIPHER_NOPASS,
+        WIFICIPHER_INVALID
     }
-    
+
     // 构造函数
     private WifiAutoConnectManager(WifiManager wifiManager) {
         this.wifiManager = wifiManager;
     }
-    
+
     public static WifiAutoConnectManager newInstance(WifiManager wifiManager) {
         if (mWifiAutoConnectManager == null) {
             mWifiAutoConnectManager = new WifiAutoConnectManager(wifiManager);
         }
         return mWifiAutoConnectManager;
     }
-    
-    
-    // 查看以前是否也配置过这个网络
+
+
+    /**
+     * 查看以前是否也配置过这个网络
+     *
+     * @param SSID
+     * @return
+     */
     public WifiConfiguration isExsits(String SSID) {
-        List<WifiConfiguration> existingConfigs = wifiManager
-                .getConfiguredNetworks();
+        @SuppressLint("MissingPermission")
+        List<WifiConfiguration> existingConfigs = wifiManager.getConfiguredNetworks();
         for (WifiConfiguration existingConfig : existingConfigs) {
             if (existingConfig.SSID.equals("\"" + SSID + "\"")) {
                 return existingConfig;

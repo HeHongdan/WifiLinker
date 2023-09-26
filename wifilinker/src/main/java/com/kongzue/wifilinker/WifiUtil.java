@@ -1,22 +1,18 @@
 package com.kongzue.wifilinker;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.widget.Toast;
 
 import com.kongzue.wifilinker.interfaces.OnWifiConnectStatusChangeListener;
 import com.kongzue.wifilinker.interfaces.OnWifiScanListener;
@@ -100,7 +96,7 @@ public class WifiUtil {
                 if (action.equals(WifiManager.WIFI_STATE_CHANGED_ACTION)) {
                     int wifState = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN);
                     if (wifState != WifiManager.WIFI_STATE_ENABLED) {
-                        error("Wifi模块启动失败");
+                        errorLog("Wifi模块启动失败");
                         if (onWifiConnectStatusChangeListener != null) {
                             onWifiConnectStatusChangeListener.onStatusChange(false, ERROR_DEVICE_NOT_HAVE_WIFI);
                         }
@@ -108,7 +104,7 @@ public class WifiUtil {
                 } else if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
                     int linkWifiResult = intent.getIntExtra(WifiManager.EXTRA_SUPPLICANT_ERROR, 123);
                     if (linkWifiResult == WifiManager.ERROR_AUTHENTICATING) {
-                        error("密码错误");
+                        errorLog("密码错误");
                         if (onWifiConnectStatusChangeListener != null) {
                             onWifiConnectStatusChangeListener.onStatusChange(false, ERROR_PASSWORD);
                         }
@@ -203,6 +199,7 @@ public class WifiUtil {
         android.net.wifi.WifiInfo wifiInfo = my_wifiManager.getConnectionInfo();
         linkedWifiSSID = wifiInfo.getSSID();
         int networkId = wifiInfo.getNetworkId();
+        @SuppressLint("MissingPermission")
         List<WifiConfiguration> configuredNetworks = my_wifiManager.getConfiguredNetworks();
         for (WifiConfiguration wifiConfiguration : configuredNetworks) {
             if (wifiConfiguration.networkId == networkId) {
@@ -232,7 +229,7 @@ public class WifiUtil {
     public void link(String ssid, String password, OnWifiConnectStatusChangeListener listener) {
         isConnected = false;
         if (mScanResultList.isEmpty()) {
-            error("此连接方式需要先进行查找");
+            errorLog("此连接方式需要先进行查找");
             return;
         }
         log("准备连接：" + ssid + " 密码：" + password);
@@ -365,6 +362,7 @@ public class WifiUtil {
             log("开始连接");
         }
         
+        @SuppressLint("MissingPermission")
         @Override
         protected Boolean doInBackground(Void... voids) {
             // 打开wifi
@@ -374,7 +372,7 @@ public class WifiUtil {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException ie) {
-                    error("错误");
+                    errorLog("错误");
                     if (DEBUGMODE) ie.printStackTrace();
                 }
             }
@@ -415,28 +413,29 @@ public class WifiUtil {
                         public void run() {
                             WifiConfiguration wifiConfig = mWifiAutoConnectManager.createWifiInfo(ssid, password, type);
                             if (wifiConfig == null) {
-                                error("错误：Wifi配置为null");
+                                errorLog("错误：Wifi配置为null");
                                 return;
                             }
+
                             log("开始连接：" + wifiConfig.SSID);
-                            
                             int netID = mWifiAutoConnectManager.wifiManager.addNetwork(wifiConfig);
+                            log("添加(成功)网络ID：" + netID);
                             boolean enabled = mWifiAutoConnectManager.wifiManager.enableNetwork(netID, true);
-                            
                             log("设置网络配置：" + enabled);
                         }
                     }).start();
                 } else {
                     WifiConfiguration wifiConfig = mWifiAutoConnectManager.createWifiInfo(ssid, password, type);
                     if (wifiConfig == null) {
-                        error("错误：Wifi配置为null");
+                        errorLog("错误：Wifi配置为null");
                         return false;
                     }
                     log("开始连接：" + wifiConfig.SSID);
                     int netID = mWifiAutoConnectManager.wifiManager.addNetwork(wifiConfig);
+                    log("添加(成功)网络ID：" + netID);
                     boolean enabled = mWifiAutoConnectManager.wifiManager.enableNetwork(netID, true);
-                    
                     log("设置网络配置：" + enabled);
+
                     return enabled;
                 }
                 return false;
@@ -450,6 +449,7 @@ public class WifiUtil {
         }
     }
     
+    @SuppressLint("MissingPermission")
     public void disconnect() {
         WifiConfiguration tempConfig = mWifiAutoConnectManager.isExsits(ssid);
         if (tempConfig != null) {
@@ -464,7 +464,7 @@ public class WifiUtil {
         mWifiAutoConnectManager.closeWifi();
     }
     
-    private void error(Object msg) {
+    private void errorLog(Object msg) {
         Log.e(">>>", "WifiUtil: " + msg);
     }
     
