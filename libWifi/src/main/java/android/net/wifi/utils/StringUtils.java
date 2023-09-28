@@ -17,6 +17,15 @@ import java.util.IllegalFormatException;
  * </pre>
  */
 public final class StringUtils {
+    // 转换为大写后比较
+    public static boolean containsByUpper(String str大, String str小) {
+        if (str大.toUpperCase().contains(str小.toUpperCase())) {
+            return true;
+        }
+
+        return false;
+    }
+
 
     private StringUtils() {
         throw new UnsupportedOperationException("u can't instantiate me...");
