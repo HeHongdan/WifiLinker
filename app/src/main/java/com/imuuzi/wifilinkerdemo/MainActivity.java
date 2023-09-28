@@ -2,7 +2,8 @@ package com.imuuzi.wifilinkerdemo;
 
 import android.net.wifi.ScanResult;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+//import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -24,6 +25,8 @@ import static com.kongzue.wifilinker.WifiUtil.ERROR_CONNECT;
 import static com.kongzue.wifilinker.WifiUtil.ERROR_CONNECT_SYS_EXISTS_SAME_CONFIG;
 import static com.kongzue.wifilinker.WifiUtil.ERROR_DEVICE_NOT_HAVE_WIFI;
 import static com.kongzue.wifilinker.WifiUtil.ERROR_PASSWORD;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
     
@@ -51,41 +54,81 @@ public class MainActivity extends AppCompatActivity {
         btnLink.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                wifiUtil.link(
-                        editSsid.getText().toString().trim(),
-                        editPassword.getText().toString().trim(),
-                        WifiAutoConnectManager.WifiCipherType.WIFICIPHER_WPA,
-                        new OnWifiConnectStatusChangeListener() {
-                            @Override
-                            public void onStatusChange(boolean isSuccess, int statusCode) {
-                                switch (statusCode){
-                                    case ERROR_DEVICE_NOT_HAVE_WIFI:
-                                        txtLog.setText("错误：设备无Wifi");
-                                        break;
-                                    case ERROR_CONNECT:
-                                        txtLog.setText("错误：连接失败");
-                                        break;
-                                    case ERROR_CONNECT_SYS_EXISTS_SAME_CONFIG:
-                                        txtLog.setText("错误：设备已存在相同Wifi配置");
-                                        break;
-                                    case ERROR_PASSWORD:
-                                        txtLog.setText("错误：密码错误");
-                                        break;
-                                    case CONNECT_FINISH:
-                                        txtLog.setText("已连接");
-                                        break;
-                                    case DISCONNECTED:
-                                        txtLog.setText("已断开连接");
-                                        break;
+                String password = editPassword.getText().toString().trim();
+                if (TextUtils.isEmpty(password)) {
+                    wifiUtil.link(
+                            editSsid.getText().toString().trim(),
+                            password,
+                            WifiAutoConnectManager.WifiCipherType.WIFICIPHER_NOPASS,
+                            new OnWifiConnectStatusChangeListener() {
+                                @Override
+                                public void onStatusChange(boolean isSuccess, int statusCode) {
+                                    switch (statusCode){
+                                        case ERROR_DEVICE_NOT_HAVE_WIFI:
+                                            txtLog.setText("错误：设备无Wifi");
+                                            break;
+                                        case ERROR_CONNECT:
+                                            txtLog.setText("错误：连接失败");
+                                            break;
+                                        case ERROR_CONNECT_SYS_EXISTS_SAME_CONFIG:
+                                            txtLog.setText("错误：设备已存在相同Wifi配置");
+                                            break;
+                                        case ERROR_PASSWORD:
+                                            txtLog.setText("错误：密码错误");
+                                            break;
+                                        case CONNECT_FINISH:
+                                            txtLog.setText("已连接");
+                                            break;
+                                        case DISCONNECTED:
+                                            txtLog.setText("已断开连接");
+                                            break;
+                                    }
+                                }
+
+                                @Override
+                                public void onConnect(WifiInfo wifiInfo) {
+                                    Log.d(">>>", "onConnect: " + wifiInfo);
                                 }
                             }
-    
-                            @Override
-                            public void onConnect(WifiInfo wifiInfo) {
-                                Log.d(">>>", "onConnect: " + wifiInfo);
+                    );
+                } else {
+                    wifiUtil.link(
+                            editSsid.getText().toString().trim(),
+                            password,
+                            WifiAutoConnectManager.WifiCipherType.WIFICIPHER_WPA,
+                            new OnWifiConnectStatusChangeListener() {
+                                @Override
+                                public void onStatusChange(boolean isSuccess, int statusCode) {
+                                    switch (statusCode){
+                                        case ERROR_DEVICE_NOT_HAVE_WIFI:
+                                            txtLog.setText("错误：设备无Wifi");
+                                            break;
+                                        case ERROR_CONNECT:
+                                            txtLog.setText("错误：连接失败");
+                                            break;
+                                        case ERROR_CONNECT_SYS_EXISTS_SAME_CONFIG:
+                                            txtLog.setText("错误：设备已存在相同Wifi配置");
+                                            break;
+                                        case ERROR_PASSWORD:
+                                            txtLog.setText("错误：密码错误");
+                                            break;
+                                        case CONNECT_FINISH:
+                                            txtLog.setText("已连接");
+                                            break;
+                                        case DISCONNECTED:
+                                            txtLog.setText("已断开连接");
+                                            break;
+                                    }
+                                }
+
+                                @Override
+                                public void onConnect(WifiInfo wifiInfo) {
+                                    Log.d(">>>", "onConnect: " + wifiInfo);
+                                }
                             }
-                        }
-                );
+                    );
+                }
+
             }
         });
         

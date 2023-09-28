@@ -33,42 +33,42 @@ import static android.content.Context.WIFI_SERVICE;
  * @createTime: 2019/7/26 15:38
  */
 public class WifiUtil {
-    
+
     public static boolean DEBUGMODE = true;
-    
+
     private Activity context;
-    
+
     public static final int ERROR_DEVICE_NOT_HAVE_WIFI = -1;    //设备无Wifi模块
     public static final int ERROR_CONNECT = -2;                 //连接失败
     public static final int ERROR_CONNECT_SYS_EXISTS_SAME_CONFIG = -3;                 //连接失败：系统已存在相同Wifi配置（需手动删除已存储连接）
     public static final int ERROR_PASSWORD = -11;               //密码错误
-    
+
     public static final int CONNECT_START = 1;                  //开始连接
     public static final int CONNECT_FINISH = 2;                 //已连接
     public static final int DISCONNECTED = 3;                   //已断开连接
-    
+
     private boolean isLinked = false;
-    
+
     private OnWifiScanListener onWifiScanListener;
     private OnWifiConnectStatusChangeListener onWifiConnectStatusChangeListener;
-    
+
     private BroadcastReceiver mWifiSearchBroadcastReceiver;
     private IntentFilter mWifiSearchIntentFilter;
     private BroadcastReceiver mWifiConnectBroadcastReceiver;
     private IntentFilter mWifiConnectIntentFilter;
     private WifiAutoConnectManager mWifiAutoConnectManager;
-    
+
     public WifiUtil(Activity context) {
         this.context = context;
-        
+
         WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(WIFI_SERVICE);
         mWifiAutoConnectManager = WifiAutoConnectManager.newInstance(wifiManager);
-        
+
         init();
     }
-    
+
     private List<ScanResult> mScanResultList = new ArrayList<>();
-    
+
     private void init() {
         mWifiSearchBroadcastReceiver = new BroadcastReceiver() {
             @Override
@@ -86,10 +86,10 @@ public class WifiUtil {
         mWifiSearchIntentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         mWifiSearchIntentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
         mWifiSearchIntentFilter.addAction(WifiManager.RSSI_CHANGED_ACTION);
-        
+
         //wifi 状态变化接收广播
         mWifiConnectBroadcastReceiver = new BroadcastReceiver() {
-            
+
             @Override
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
@@ -120,14 +120,14 @@ public class WifiUtil {
         mWifiConnectIntentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
         mWifiConnectIntentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
         mWifiConnectIntentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
-        
+
         //注册接收器
         context.registerReceiver(mWifiSearchBroadcastReceiver, mWifiSearchIntentFilter);
         context.registerReceiver(mWifiConnectBroadcastReceiver, mWifiConnectIntentFilter);
     }
-    
-    private boolean isConnected = false;
-    
+
+    private boolean isConnected = false;//标记WiFi是否在已连状态
+
     private void setWifiState(NetworkInfo.DetailedState state) {
         if (state == NetworkInfo.DetailedState.AUTHENTICATING) {
             log("认证中");
@@ -135,7 +135,7 @@ public class WifiUtil {
             log("阻塞");
         } else if (state == NetworkInfo.DetailedState.CONNECTED) {
             log("连接成功");
-    
+
             if (!isConnected) {
                 new Handler().postDelayed(new Runnable() {
                     @Override
@@ -146,7 +146,7 @@ public class WifiUtil {
                             public void run() {
                                 if (onWifiConnectStatusChangeListener != null) {
                                     onWifiConnectStatusChangeListener.onStatusChange(true, CONNECT_FINISH);
-        
+
                                     onWifiConnectStatusChangeListener.onConnect(new WifiInfo(
                                             getNowLinkedWifiSSID(),
                                             WifiAutoConnectManager.getIpAddress(),
@@ -180,16 +180,16 @@ public class WifiUtil {
             }
             log("连接失败");
         } else if (state == NetworkInfo.DetailedState.IDLE) {
-        
+
         } else if (state == NetworkInfo.DetailedState.OBTAINING_IPADDR) {
-        
+
         } else if (state == NetworkInfo.DetailedState.SCANNING) {
             log("搜索中");
         } else if (state == NetworkInfo.DetailedState.SUSPENDED) {
-        
+
         }
     }
-    
+
     public String getNowLinkedWifiSSID(){
         String linkedWifiSSID;
         //通过以下方法获取连接的Wifi的真实SSID：
@@ -209,7 +209,7 @@ public class WifiUtil {
         }
         return linkedWifiSSID;
     }
-    
+
     public void close() {
         try {
             context.unregisterReceiver(mWifiSearchBroadcastReceiver);
@@ -220,13 +220,13 @@ public class WifiUtil {
             }
         }
     }
-    
+
     private WifiAutoConnectManager.WifiCipherType type = WifiAutoConnectManager.WifiCipherType.WIFICIPHER_NOPASS;
-    
+
     private String ssid;
     private String password;
-    
-    public void link(String ssid, String password, OnWifiConnectStatusChangeListener listener) {
+
+    public void link(String ssid, String password, OnWifiConnectStatusChangeListener listener) {//扫描后连接
         isConnected = false;
         if (mScanResultList.isEmpty()) {
             errorLog("此连接方式需要先进行查找");
@@ -237,7 +237,7 @@ public class WifiUtil {
         this.password = password;
         onWifiConnectStatusChangeListener = listener;
         type = WifiAutoConnectManager.getCipherType(ssid);
-        
+
         if (ssid.equals(WifiAutoConnectManager.getSSID())) {
             log("已连接");
             return;
@@ -249,18 +249,18 @@ public class WifiUtil {
         mConnectAsyncTask = new ConnectAsyncTask(ssid, password, type);
         mConnectAsyncTask.execute();
     }
-    
-    
+
+
     private ConnectAsyncTask mConnectAsyncTask = null;
-    
-    public void link(String ssid, String password, WifiAutoConnectManager.WifiCipherType wifiCipherType, OnWifiConnectStatusChangeListener listener) {
+
+    public void link(String ssid, String password, WifiAutoConnectManager.WifiCipherType wifiCipherType, OnWifiConnectStatusChangeListener listener) {//不用扫描直接连接
         isConnected = false;
         this.ssid = ssid;
         this.password = password;
         log("准备连接：" + ssid + " 密码：" + password);
         type = wifiCipherType;
         onWifiConnectStatusChangeListener = listener;
-        
+
         if (ssid.equals(WifiAutoConnectManager.getSSID())) {
             log("已连接");
             return;
@@ -272,9 +272,9 @@ public class WifiUtil {
         mConnectAsyncTask = new ConnectAsyncTask(ssid, password, type);
         mConnectAsyncTask.execute();
     }
-    
+
     private WorkAsyncTask mWorkAsyncTask = null;
-    
+
     public void scan(OnWifiScanListener listener) {
         onWifiScanListener = listener;
         if (mWorkAsyncTask != null) {
@@ -284,20 +284,20 @@ public class WifiUtil {
         mWorkAsyncTask = new WorkAsyncTask();
         mWorkAsyncTask.execute();
     }
-    
+
     public void stopScan() {
         if (mWorkAsyncTask != null) {
             mWorkAsyncTask.cancel(true);
             mWorkAsyncTask = null;
         }
     }
-    
+
     /**
      * 获取wifi列表
      */
     private class WorkAsyncTask extends AsyncTask<Void, Void, List<ScanResult>> {
         private List<ScanResult> mScanResult = new ArrayList<>();
-        
+
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -306,7 +306,7 @@ public class WifiUtil {
                 onWifiScanListener.onScanStart();
             }
         }
-        
+
         @Override
         protected List<ScanResult> doInBackground(Void... params) {
             if (WifiAutoConnectManager.startStan()) {
@@ -326,7 +326,7 @@ public class WifiUtil {
             }
             return filterScanResultList;
         }
-        
+
         @Override
         protected void onPostExecute(final List<ScanResult> result) {
             super.onPostExecute(result);
@@ -334,10 +334,10 @@ public class WifiUtil {
             if (onWifiScanListener != null) {
                 onWifiScanListener.onScanStop(mScanResultList);
             }
-            
+
         }
     }
-    
+
     /**
      * 连接指定的wifi
      */
@@ -346,13 +346,13 @@ public class WifiUtil {
         private String password;
         private WifiAutoConnectManager.WifiCipherType type;
         WifiConfiguration tempConfig;
-        
+
         public ConnectAsyncTask(String ssid, String password, WifiAutoConnectManager.WifiCipherType type) {
             this.ssid = ssid;
             this.password = password;
             this.type = type;
         }
-        
+
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -361,7 +361,7 @@ public class WifiUtil {
             }
             log("开始连接");
         }
-        
+
         @SuppressLint("MissingPermission")
         @Override
         protected Boolean doInBackground(Void... voids) {
@@ -376,10 +376,11 @@ public class WifiUtil {
                     if (DEBUGMODE) ie.printStackTrace();
                 }
             }
-            
+
             tempConfig = mWifiAutoConnectManager.isExsits(ssid);
             //禁掉所有wifi
-            for (WifiConfiguration c : mWifiAutoConnectManager.wifiManager.getConfiguredNetworks()) {
+            List<WifiConfiguration> configuredNetworks = mWifiAutoConnectManager.wifiManager.getConfiguredNetworks();
+            for (WifiConfiguration c : configuredNetworks) {
                 mWifiAutoConnectManager.wifiManager.disableNetwork(c.networkId);
             }
             if (tempConfig != null) {
@@ -408,28 +409,12 @@ public class WifiUtil {
             } else {
                 log(ssid + "是新的配置，开始连接");
                 if (type != WifiAutoConnectManager.WifiCipherType.WIFICIPHER_NOPASS) {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            WifiConfiguration wifiConfig = mWifiAutoConnectManager.createWifiInfo(ssid, password, type);
-                            if (wifiConfig == null) {
-                                errorLog("错误：Wifi配置为null");
-                                return;
-                            }
-
-                            log("开始连接：" + wifiConfig.SSID);
-                            int netID = mWifiAutoConnectManager.wifiManager.addNetwork(wifiConfig);
-                            log("添加(成功)网络ID：" + netID);
-                            boolean enabled = mWifiAutoConnectManager.wifiManager.enableNetwork(netID, true);
-                            log("设置网络配置：" + enabled);
-                        }
-                    }).start();
-                } else {
                     WifiConfiguration wifiConfig = mWifiAutoConnectManager.createWifiInfo(ssid, password, type);
                     if (wifiConfig == null) {
                         errorLog("错误：Wifi配置为null");
                         return false;
                     }
+
                     log("开始连接：" + wifiConfig.SSID);
                     int netID = mWifiAutoConnectManager.wifiManager.addNetwork(wifiConfig);
                     log("添加(成功)网络ID：" + netID);
@@ -437,18 +422,47 @@ public class WifiUtil {
                     log("设置网络配置：" + enabled);
 
                     return enabled;
+                } else {//没有秘密的WiFi
+                    if (true) {
+                        WifiConfiguration wifiConfig = new WifiConfiguration();
+                        wifiConfig.SSID = "\"" + ssid + "\"";
+                        wifiConfig.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+
+                        WifiManager wifiManager = mWifiAutoConnectManager.wifiManager;
+                        int netId = wifiManager.addNetwork(wifiConfig);
+                        wifiManager.disconnect();
+                        wifiManager.enableNetwork(netId, true);
+                        wifiManager.reconnect();
+
+                        boolean enabled = mWifiAutoConnectManager.wifiManager.enableNetwork(netId, true);
+                        log("设置网络配置【无密码】：" + enabled);
+
+                        return enabled;
+                    } else {
+                        WifiConfiguration wifiConfig = mWifiAutoConnectManager.createWifiInfo(ssid, password, type);
+                        if (wifiConfig == null) {
+                            errorLog("错误：Wifi配置为null");
+                            return false;
+                        }
+                        log("开始连接：" + wifiConfig.SSID);
+                        int netID = mWifiAutoConnectManager.wifiManager.addNetwork(wifiConfig);
+                        log("添加(成功)网络ID：" + netID);
+                        boolean enabled = mWifiAutoConnectManager.wifiManager.enableNetwork(netID, true);
+                        log("设置网络配置：" + enabled);
+
+                        return enabled;
+                    }
                 }
-                return false;
             }
         }
-        
+
         @Override
         protected void onPostExecute(Boolean aBoolean) {
             super.onPostExecute(aBoolean);
             mConnectAsyncTask = null;
         }
     }
-    
+
     @SuppressLint("MissingPermission")
     public void disconnect() {
         WifiConfiguration tempConfig = mWifiAutoConnectManager.isExsits(ssid);

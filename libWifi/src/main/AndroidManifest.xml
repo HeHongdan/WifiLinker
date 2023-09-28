@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="android.net.wifi">
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <application>
+        <provider
+            android:name=".utils.ContextProvider"
+            android:authorities="android.net.wifi.contextprovider"
+            android:exported="false" />
+    </application>
+
+</manifest>

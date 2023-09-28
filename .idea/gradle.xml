@@ -11,7 +11,11 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/WiFi" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/libActivity" />
+            <option value="$PROJECT_DIR$/libLog" />
+            <option value="$PROJECT_DIR$/libWifi" />
             <option value="$PROJECT_DIR$/wifilinker" />
           </set>
         </option>
