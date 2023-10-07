@@ -9,6 +9,7 @@ import android.net.wifi.connect.ConnectListener;
 import android.net.wifi.connect.WifiConnector;
 import android.net.wifi.scan.ScannerListener;
 import android.net.wifi.scan.WifiScanner;
+import android.net.wifi.utils.NetworkUtils;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -55,47 +56,23 @@ public class ConnectActivity extends AppCompatActivity {
                         .setListener(new ConnectListener.Simple<WifiConfiguration>() {
                             @Override
                             public void onSuccess(WifiConfiguration response) {
-
+                                LogUtils.v("【监听器】连接成功= " + response.SSID);
+                                LogUtils.e("【监听器】连接成功= " + NetworkUtils.getSSID());
                             }
 
                             @Override
                             public void onFailure(String errorMessage) {
-
+                                LogUtils.e("【监听器】连接(不)成功= " + errorMessage);
                             }
 
                             @Override
                             public void onDetailedState(Object o, String msg) {
-
+                                //LogUtils.e("【监听器】连接(不)成功= " + NetworkUtils.getSSID());
                             }
                         })
-
                         .connect(name, password);
             }
         });
-
-
-//        WifiConnector.getInstance()
-//                .setListener(new ConnectListener.Simple<WifiConfiguration>() {
-//                    @Override
-//                    public void onSuccess(WifiConfiguration response) {
-//
-//                    }
-//
-//                    @Override
-//                    public void onFailure(String errorMessage) {
-//
-//                    }
-//
-//                    @Override
-//                    public void onState(Object o) {
-//                    }
-//
-//                    @Override
-//                    public void onDetailedState(Object o, String msg) {
-//
-//                    }
-//                });
-
 
     }
 }
