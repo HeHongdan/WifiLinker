@@ -134,146 +134,104 @@ public class WifiConnector implements LifecycleObserver {
     }
 
 
-    //----------------------------------------------------------------------------------------
-    @SuppressLint({"NewApi", "MissingPermission"})
-    public boolean connectWifiConfiguration(String targetSSID, String password) {
-        LogUtils.d("【连接WiFi】已经存在= " + targetSSID + "；密码= " + password);
-
-        List<WifiConfiguration> configuredNetworks = wifiManager.getConfiguredNetworks();
-
-        if (configuredNetworks != null) {
-            for (WifiConfiguration config : configuredNetworks) {
-                String ssid = addQuotes(targetSSID);  // Add quotes around SSID
-                if (ssid.equals(config.SSID)) {
-                    // Disconnect from current network
-                    wifiManager.disconnect();
-
-                    // Enable the network
-                    int networkId = wifiManager.updateNetwork(config);
-                    if (networkId == -1) {
-                        networkId = wifiManager.addNetwork(config);
-                    }
-
-                    // Reconnect to the specified network
-                    if (wifiManager.enableNetwork(networkId, true)) {
-                        // Wait for connection to complete
-                        boolean connected = waitForConnection(targetSSID, 10*1000);  // 10 seconds timeout
-                        if (connected) {
-                            LogUtils.w("【连接WiFi】已经存在，连接成功= " + targetSSID + "；密码= " + password);
-
-                            return true;  // Successfully connected, exit loop
-                        }
-                    }
-                }
-            }
-        }
-
-        LogUtils.w("【连接WiFi】已经存在，连接失败= " + targetSSID + "；密码= " + password);
-
-        return false;  // Configuration not found or failed to connect
-    }
-
-    private boolean waitForConnection(String targetSSID, int timeoutMillis) {
-        LogUtils.d("【连接WiFi】已经存在= " + targetSSID + "；等待= " + timeoutMillis);
-
-        long startTime = System.currentTimeMillis();
-
-        while (System.currentTimeMillis() - startTime < timeoutMillis) {
-            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-            if (wifiInfo != null && wifiInfo.getSSID().equals(addQuotes(targetSSID))) {
-                return true;  // Successfully connected to the targetSSID
-            }
-
-            // Wait for a moment
-            //SystemClock.sleep(1000);
-            SystemClock.sleep(500);
-        }
-
-        return false;  // Timeout or failed to connect
-    }
-
-    private String addQuotes(String input) {
-        String pj = "\"" + input + "\"";
-        LogUtils.d("【连接WiFi】已经存在= " + input + "；拼接= " + pj);
-
-        return pj;
-    }
-
-    //----------------------------------------------------------------------------------------
+    /**
+     * 连接(没密码)WiFi。
+     *
+     * @param ssid WiFi名称。
+     */
     @SuppressLint("NewApi")
-    public void connect(String ssid) {
-        connect(ssid, "", "");
+    public boolean connect(String ssid) {
+        return connect(ssid, "", "");
     }
 
+    /**
+     * 连接(有密码)WiFi。
+     *
+     * @param ssid WiFi名称。
+     * @param password WiFi密码。
+     */
     @SuppressLint("NewApi")
-    public void connect(String ssid, String password, String capabilities) {
+    public boolean connect(String ssid, String password) {
+        ScanResult result = new ScanResult();
+        result.SSID = ssid;
+        result.capabilities = Constant.CAPABILITIES_WPA;
+        return connect(result, password);
+    }
+
+    /**
+     * 连接(有密码，知道加密类型)WiFi。
+     *
+     * @param ssid WiFi名称。
+     * @param password WiFi密码。
+     * @param capabilities 加密类型。
+     */
+    @SuppressLint("NewApi")
+    public boolean connect(String ssid, String password, String capabilities) {
         ScanResult result = new ScanResult();
         result.SSID = ssid;
         result.capabilities = capabilities;
-        connect(result, password);
+        return connect(result, password);
     }
 
-    public void connect(ScanResult result) {
-        connect(result, "");
+    /**
+     * 连接(扫描的)WiFi。
+     *
+     * @param result 扫描的WiFi。
+     */
+    public boolean connect(ScanResult result) {
+        return connect(result, "");
     }
 
-    public void connect(ScanResult result, String password) {
-        String ssid = result.BSSID;
+    /**
+     * 连接(扫描的，有密码的)WiFi。
+     *
+     * @param result 扫描的WiFi。
+     * @param password WiFi密码。
+     */
+    public boolean connect(ScanResult result, String password) {
+        boolean isConnect = false;
+        String ssid = result.SSID;
         String capabilities = result.capabilities;
 
-        List<WifiConfiguration> havaConfigurations = wifi同名多个配置findWiFiNetworks(context, ssid);
-        if (havaConfigurations.isEmpty())  {
+        List<WifiConfiguration> sameConfigurationList = findAllSameConfiguration(context, ssid);
+        if (sameConfigurationList.isEmpty())  {
             if (StringUtils.containsByUpper(capabilities, Constant.CAPABILITIES_WPA)) {
                 LogUtils.w("【WiFi加密】WPA= " + ssid);
-                connectToWpa(context, ssid, password);
+                isConnect = connectToWpa(context, ssid, password);
             } else if (StringUtils.containsByUpper(capabilities, Constant.CAPABILITIES_WEP)) {
                 LogUtils.w("【WiFi加密】WEP= " + ssid);
-                connectToWep(context, ssid, password);
+                isConnect = connectToWep(context, ssid, password);
             }
             else {
                 LogUtils.w("【WiFi加密】没有密码= " + ssid);
-                connectToOpen(context, ssid);
+                isConnect = connectToOpen(context, ssid);
             }
 
         } else {
-            for (int i = 0; i < havaConfigurations.size(); i++) {
-                WifiConfiguration config = havaConfigurations.get(i);
+            isConnect = connectExist(result, sameConfigurationList);
+            LogUtils.i("【连接WiFi】相同，连接成功= " + isConnect);
 
-                LogUtils.w("【遍历】对比 SSID= " + config.SSID+ " = " + result.SSID
-                        + "\n【遍历】对比 BSSID= " + config.BSSID + " = " + result.BSSID);
-                boolean sSsid = config.SSID != null && config.SSID.equals("\"" + result.SSID + "\"");
-                boolean sBssid = config.BSSID != null && config.BSSID.equals("\"" + result.BSSID + "\"");
-                WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-                String cSsid = wifiInfo.getSSID();
-                LogUtils.w("【连接WiFi】对比 需要连接= " + result.SSID
-                        + "\n配置= " + config.SSID
-                        + "\n当前= " + cSsid
-                );
-                LogUtils.w("【连接WiFi】条件= " + (sSsid && !cSsid.contains(result.SSID))
-                        + "\n配置与需要= " + sSsid
-                        + "\n当前与需要= " + !cSsid.contains(result.SSID)
-                );
-
-                if (sSsid && !cSsid.contains(result.SSID)) {
-                    int netId = config.networkId;
-                    boolean disconnect = wifiManager.disconnect();
-                    boolean enabled = wifiManager.enableNetwork(netId, true);
-                    boolean reconnect = wifiManager.reconnect();
-                    Log.d("WiFi Connection", "遍历->Connecting to WiFi: " + enabled + " = " +reconnect);
-                    //return reconnect;
-                }
-
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+            if (!isConnect) {
+                wifi忘记已配置过forgetWiFiNetwork(context, ssid);
+                SystemClock.sleep(500);//TODO 拿CPU频率来，动态调整
+                isConnect = connectToWpa(context, ssid, password);//TODO 不成功就重新配置新的然后再次连接
+                LogUtils.i("【连接WiFi】相同，连接成功= " + isConnect);
             }
         }
+
+        return isConnect;
     }
 
 
     //==============================================================================================
+
+    /**
+     * 连接(没密码)WiFi。
+     *
+     * @param context 上下文。
+     * @param ssid WiFi名称。
+     * @return 是否连接成功。
+     */
     @SuppressLint({"WifiManagerLeak", "WifiManagerPotentialLeak"})
     public static boolean connectToOpen(Context context, String ssid) {
         WifiConfiguration wifiConfig = new WifiConfiguration();
@@ -295,11 +253,19 @@ public class WifiConnector implements LifecycleObserver {
         return enabled;
     }
 
+    /**
+     * 连接(有密码，WEP加密类型)WiFi。
+     *
+     * @param context 上下文。
+     * @param ssid WiFi名称。
+     * @param wpaKey WiFi密码。
+     * @return 是否连接成功。
+     */
     @SuppressLint({"WifiManagerLeak", "WifiManagerPotentialLeak"})
-    public static boolean connectToWpa(Context context, String ssid, String password) {
+    public static boolean connectToWpa(Context context, String ssid, String wpaKey) {
         WifiConfiguration wifiConfig = new WifiConfiguration();
         wifiConfig.SSID = "\"" + ssid + "\"";
-        wifiConfig.preSharedKey = "\"" + password + "\"";
+        wifiConfig.preSharedKey = "\"" + wpaKey + "\"";
         wifiConfig.status = WifiConfiguration.Status.ENABLED;
         wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
         wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
@@ -322,6 +288,14 @@ public class WifiConnector implements LifecycleObserver {
         return enabled;
     }
 
+    /**
+     * 连接(有密码，WEP加密类型)WiFi。
+     *
+     * @param context 上下文。
+     * @param ssid WiFi名称。
+     * @param wepKey WiFi密码。
+     * @return 是否连接成功。
+     */
     @SuppressLint({"WifiManagerLeak", "WifiManagerPotentialLeak"})
     public static boolean connectToWep(Context context, String ssid, String wepKey) {
         WifiConfiguration wifiConfig = new WifiConfiguration();
@@ -346,6 +320,91 @@ public class WifiConnector implements LifecycleObserver {
         wifiConfiguration = wifiConfig;
         return enabled;
     }
+
+    //----------------------------------------------------------------------------------------
+
+    /**
+     * (遍历)连接(已经存在)WiFi。
+     *
+     * @param result 待连接。
+     * @param sameConfigurationList 相同名称的WiFi配置列表。
+     * @return 是否连接成功。
+     */
+    private boolean connectExist(ScanResult result, List<WifiConfiguration> sameConfigurationList) {
+        for (int i = 0; i < sameConfigurationList.size(); i++) {
+            WifiConfiguration config = sameConfigurationList.get(i);
+
+            LogUtils.w("【遍历】对比 SSID= " + config.SSID+ " = " + result.SSID
+                    + "\n【遍历】对比 BSSID= " + config.BSSID + " = " + result.BSSID);
+            //boolean sameSsid = config.SSID.equals("\"" + result.SSID + "\"");
+            //boolean sBssid = config.BSSID != null && config.BSSID.equals("\"" + result.BSSID + "\"");
+            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+            String currentSsid = wifiInfo.getSSID();
+            LogUtils.w("【连接WiFi】对比 需要连接= " + result.SSID
+                    + "\n配置= " + config.SSID
+                    + "\n当前= " + currentSsid
+            );
+
+            if (!currentSsid.equals(addQuotes(result.SSID))) {
+                int netId = config.networkId;
+                boolean disconnect = wifiManager.disconnect();
+                boolean enabled = wifiManager.enableNetwork(netId, true);
+                boolean reconnect = wifiManager.reconnect();
+                LogUtils.e("【连接WiFi】(不)相同，要连= " + result.SSID
+                        + "\n断开= " + disconnect
+                        + "\n可用= " + enabled
+                        + "\n重连= " + reconnect
+                );
+            }
+
+            SystemClock.sleep(500);//TODO 拿CPU频率来，动态调整
+            if (currentSsid.equals(addQuotes(result.SSID))) {
+                LogUtils.i("【连接WiFi】相同，要连= " + result.SSID
+                        + "\n当前= " + currentSsid
+                );
+                return true;
+            }
+        }
+
+        return false;
+    }
+    //----------------------------------------------------------------------------------------
+
+
+    /**
+     * 查找所有(相同名称)的WiFi配置。
+     *
+     * @param context 上下文。
+     * @param ssid WiFi名称。
+     * @return WiFi配置列表。
+     */
+    @SuppressLint("MissingPermission")
+    public static List<WifiConfiguration> findAllSameConfiguration(Context context, String ssid) {
+        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+
+        List<WifiConfiguration> configuredNetworks = wifiManager.getConfiguredNetworks();
+        List<WifiConfiguration> matchingNetworks = new ArrayList<>();
+
+        if (configuredNetworks != null) {
+            for (WifiConfiguration config : configuredNetworks) {
+                if (config.SSID != null && config.SSID.equals("\"" + ssid + "\"")) {
+                    matchingNetworks.add(config);
+                }
+            }
+        }
+
+        if (!matchingNetworks.isEmpty()) {
+            Log.d("WiFi", "Found " + matchingNetworks.size() + " configurations for WiFi network: " + ssid);
+            for (WifiConfiguration config : matchingNetworks) {
+                Log.d("WiFi", "SSID: " + config.SSID + ", Network ID: " + config.networkId);
+            }
+        } else {
+            Log.d("WiFi", "No configurations found for WiFi network: " + ssid);
+        }
+
+        return matchingNetworks;
+    }
+
     //==============================================================================================
     /** 初始化（弱引用）Handler */
     private WeakHandler weakHandler = new WeakHandler(context);
@@ -388,133 +447,23 @@ public class WifiConnector implements LifecycleObserver {
         weakHandler.sendMessage(message);
     }
 
-    @SuppressLint("MissingPermission")
-    public static List<WifiConfiguration> wifi同名多个配置findWiFiNetworks(Context context, String ssid) {
-        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-
-        List<WifiConfiguration> configuredNetworks = wifiManager.getConfiguredNetworks();
-        List<WifiConfiguration> matchingNetworks = new ArrayList<>();
-
-        if (configuredNetworks != null) {
-            for (WifiConfiguration config : configuredNetworks) {
-                if (config.SSID != null && config.SSID.equals("\"" + ssid + "\"")) {
-                    matchingNetworks.add(config);
-                }
-            }
-        }
-
-        if (!matchingNetworks.isEmpty()) {
-            Log.d("WiFi", "Found " + matchingNetworks.size() + " configurations for WiFi network: " + ssid);
-            for (WifiConfiguration config : matchingNetworks) {
-                Log.d("WiFi", "SSID: " + config.SSID + ", Network ID: " + config.networkId);
-            }
-        } else {
-            Log.d("WiFi", "No configurations found for WiFi network: " + ssid);
-        }
-
-        return matchingNetworks;
-    }
-
     /**
-     * wifi是否已配置过。
+     * (WiFi名称)加引号。
      *
-     * @param context 上下文。
-     * @param ssid 需要检查的WiFi。
-     * @return 已存在配置的Id。
+     * @param ssid WiFi名称。
+     * @return 加引号的WiFi名称。
      */
-    @SuppressLint({"WifiManagerLeak", "MissingPermission"})
-    public static int wifi是否已配置过_getExistingNetworkId(Context context, String ssid) {
-        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        List<WifiConfiguration> configuredNetworks = wifiManager.getConfiguredNetworks();
-        if (configuredNetworks != null) {
-            for (WifiConfiguration config : configuredNetworks) {
-                if (config.SSID != null && config.SSID.equals("\"" + ssid + "\"")) {
-                    return config.networkId;
-                }
-            }
-        }
+    public static String addQuotes(String ssid) {
+        String quotesSsid = "\"" + ssid + "\"";
+        LogUtils.d("【连接WiFi】已经存在= " + ssid + "；拼接= " + quotesSsid);
 
-        return -1;
+        return quotesSsid;
     }
-
-    public static boolean wifi忘记已配置过forgetWiFiNetwork(Context context, String ssid) {
-        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        @SuppressLint("MissingPermission") List<WifiConfiguration> configuredNetworks = wifiManager.getConfiguredNetworks();
-        if (configuredNetworks != null) {
-            for (WifiConfiguration config : configuredNetworks) {
-                if (config.SSID != null && config.SSID.equals("\"" + ssid + "\"")) {
-                    wifiManager.removeNetwork(config.networkId);
-                    boolean b = wifiManager.saveConfiguration();
-                    Log.d("WiFi", "Forgot WiFi network: " + b);
-                    return b;
-                }
-            }
-        }
-
-        return false;
-    }
-
 
     public WifiConnector setListener(ConnectListener<WifiConfiguration> listener) {
         this.listener = listener;
         return this;
     }
-
-//        mWifiSearchBroadcastReceiver = new BroadcastReceiver() {
-//            @Override
-//            public void onReceive(Context context, Intent intent) {
-//                String action = intent.getAction();
-//                if (action.equals(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)) {// 扫描结果改表
-//                    mScanResultList = WifiAutoConnectManager.getScanResults();
-//                    if (onWifiScanListener != null) {
-//                        onWifiScanListener.onScan(mScanResultList);
-//                    }
-//                }
-//            }
-//        };
-//        mWifiSearchIntentFilter = new IntentFilter();
-//        mWifiSearchIntentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
-//        mWifiSearchIntentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
-//        mWifiSearchIntentFilter.addAction(WifiManager.RSSI_CHANGED_ACTION);
-//
-//        //wifi 状态变化接收广播
-//        wifiConnectReceiver = new BroadcastReceiver() {
-//
-//            @Override
-//            public void onReceive(Context context, Intent intent) {
-//                String action = intent.getAction();
-//                if (action.equals(WifiManager.WIFI_STATE_CHANGED_ACTION)) {
-//                    int wifState = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN);
-//                    if (wifState != WifiManager.WIFI_STATE_ENABLED) {
-//                        errorLogUtils.d("【连接WiFi】Wifi模块启动失败");
-//                        if (onWifiConnectStatusChangeListener != null) {
-//                            onWifiConnectStatusChangeListener.onStatusChange(false, ERROR_DEVICE_NOT_HAVE_WIFI);
-//                        }
-//                    }
-//                } else if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
-//                    int linkWifiResult = intent.getIntExtra(WifiManager.EXTRA_SUPPLICANT_ERROR, 123);
-//                    if (linkWifiResult == WifiManager.ERROR_AUTHENTICATING) {
-//                        errorLogUtils.d("【连接WiFi】密码错误");
-//                        if (onWifiConnectStatusChangeListener != null) {
-//                            onWifiConnectStatusChangeListener.onStatusChange(false, ERROR_PASSWORD);
-//                        }
-//                    }
-//                } else if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
-//                    NetworkInfo.DetailedState state = ((NetworkInfo) intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO)).getDetailedState();
-//                    setWifiState(state);
-//                }
-//            }
-//        };
-//        mWifiConnectIntentFilter = new IntentFilter();
-//        mWifiConnectIntentFilter.addAction(WifiManager.ACTION_PICK_WIFI_NETWORK);
-//        mWifiConnectIntentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
-//        mWifiConnectIntentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
-//        mWifiConnectIntentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
-//
-//        //注册接收器
-//        context.registerReceiver(mWifiSearchBroadcastReceiver, mWifiSearchIntentFilter);
-//        context.registerReceiver(wifiConnectReceiver, mWifiConnectIntentFilter);
-
 
     private void setDetailedState(NetworkInfo.DetailedState state) {
         if (state == NetworkInfo.DetailedState.CONNECTED) {
@@ -574,5 +523,48 @@ public class WifiConnector implements LifecycleObserver {
     }
 
 
+
+
+
+    /**
+     * wifi是否已配置过。
+     *
+     * @param context 上下文。
+     * @param ssid 需要检查的WiFi。
+     * @return 已存在配置的Id。
+     */
+    @SuppressLint({"WifiManagerLeak", "MissingPermission"})
+    public static int wifi是否已配置过_getExistingNetworkId(Context context, String ssid) {
+        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        List<WifiConfiguration> configuredNetworks = wifiManager.getConfiguredNetworks();
+        if (configuredNetworks != null) {
+            for (WifiConfiguration config : configuredNetworks) {
+                if (config.SSID != null && config.SSID.equals("\"" + ssid + "\"")) {
+                    return config.networkId;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    @SuppressLint("MissingPermission")
+    public static boolean wifi忘记已配置过forgetWiFiNetwork(Context context, String ssid) {
+        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        List<WifiConfiguration> configuredNetworkList = wifiManager.getConfiguredNetworks();
+        if (configuredNetworkList != null) {
+            for (WifiConfiguration config : configuredNetworkList) {
+                if (config.SSID != null && config.SSID.equals("\"" + ssid + "\"")) {
+                    wifiManager.removeNetwork(config.networkId);
+                    boolean save = wifiManager.saveConfiguration();
+                    Log.d("WiFi", "Forgot WiFi network: " + save);
+                    SystemClock.sleep(100);//TODO 拿CPU频率来，动态调整
+                    return save;
+                }
+            }
+        }
+
+        return false;
+    }
 
 }

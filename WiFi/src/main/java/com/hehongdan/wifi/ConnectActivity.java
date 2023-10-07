@@ -69,7 +69,7 @@ public class ConnectActivity extends AppCompatActivity {
                             }
                         })
 
-                        .connectWifiConfiguration(name, password);
+                        .connect(name, password);
             }
         });
 
