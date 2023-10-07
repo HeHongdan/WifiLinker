@@ -71,10 +71,10 @@ public class ConnectTask extends AsyncTask<Void, Void, Boolean> {
             //enable
             boolean result = NetworkUtils.getWifiManager().enableNetwork(tempConfig.networkId, true);
             LogUtils.d("【连接任务】", "WiFi加密方式= " + capabilities);
-            LogUtils.w("【连接任务】", "检查= " + (!isLinked) + (!capabilities.contains(Constant.WifiCipherType_NOPASS)));
+            LogUtils.w("【连接任务】", "检查= " + (!isLinked) + (!capabilities.contains(Constant.CAPABILITIES_NOPASS)));
 
             //if (!isLinked && !StringUtils.equalsIgnoreCase(Constant.WifiCipherType_NOPASS, type)) {
-            if (!isLinked && !capabilities.contains(Constant.WifiCipherType_NOPASS)) {
+            if (!isLinked && !capabilities.contains(Constant.CAPABILITIES_NOPASS)) {
                 try {
                     Thread.sleep(5000);//5s后，检查广播，并提示结果
                     if (!isLinked) {
@@ -101,7 +101,7 @@ public class ConnectTask extends AsyncTask<Void, Void, Boolean> {
             LogUtils.d("【连接任务】", "连接(不)存在配置的WiFi= " + ssid);
 
 
-            if (!capabilities.contains(Constant.WifiCipherType_NOPASS)) {
+            if (!capabilities.contains(Constant.CAPABILITIES_NOPASS)) {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {

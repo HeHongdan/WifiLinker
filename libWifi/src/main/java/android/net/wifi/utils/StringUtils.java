@@ -18,12 +18,13 @@ import java.util.IllegalFormatException;
  */
 public final class StringUtils {
     // 转换为大写后比较
-    public static boolean containsByUpper(String str大, String str小) {
-        if (str大.toUpperCase().contains(str小.toUpperCase())) {
+    public static boolean containsByUpper(String s大, String s小) {
+        if (s大 == s小) return true;
+        if (s大 != null && s小 != null) {
+            return s大.toUpperCase().contains(s小.toUpperCase());
+        } else {
             return true;
         }
-
-        return false;
     }
 
 

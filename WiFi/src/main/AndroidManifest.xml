@@ -45,6 +45,11 @@
             android:exported="false"
             android:theme="@style/Theme.NoActionBar"
             />
+        <activity
+            android:name=".ConnectActivity"
+            android:exported="false"
+            android:theme="@style/Theme.NoActionBar"
+            />
 
     </application>
 

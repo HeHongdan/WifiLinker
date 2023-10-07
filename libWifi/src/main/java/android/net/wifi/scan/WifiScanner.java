@@ -47,7 +47,7 @@ public class WifiScanner implements LifecycleObserver {
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
-    public void startWiFiScan() {
+    public void startWifiScan() {
         LogUtils.d("【扫描WiFi】开始...");
 
         wifiScanReceiver = new BroadcastReceiver() {
@@ -70,7 +70,7 @@ public class WifiScanner implements LifecycleObserver {
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
-    public void stopWiFiScan() {
+    public void stopWifiScan() {
         LogUtils.d("【扫描WiFi】停止");
 
         if (wifiScanReceiver != null) {
@@ -84,7 +84,7 @@ public class WifiScanner implements LifecycleObserver {
         LogUtils.d("【扫描WiFi】销毁");
 
         // Remove the WiFiScanner instance on activity destroy
-        instance = null;
+        //instance = null;
     }
 
 

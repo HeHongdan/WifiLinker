@@ -183,20 +183,20 @@ public class NetworkUtils {
                 String capabilities = scResult.capabilities.toUpperCase();
                 if (!TextUtils.isEmpty(capabilities)) {
 
-                    if (capabilities.contains(Constant.WifiCipherType_WPA)) {
+                    if (capabilities.contains(Constant.CAPABILITIES_WPA)) {
                         LogUtils.d("【加密方式】", "WPA");
-                        return Constant.WifiCipherType_WPA;
-                    } else if (capabilities.contains(Constant.WifiCipherType_WEP)) {
+                        return Constant.CAPABILITIES_WPA;
+                    } else if (capabilities.contains(Constant.CAPABILITIES_WEP)) {
                         LogUtils.d("【加密方式】", "WEP");
-                        return Constant.WifiCipherType_WEP;
+                        return Constant.CAPABILITIES_WEP;
                     } else {
                         LogUtils.d("【加密方式】", "NOPASS");
-                        return Constant.WifiCipherType_NOPASS;
+                        return Constant.CAPABILITIES_NOPASS;
                     }
                 }
             }
         }
-        return Constant.WifiCipherType_INVALID;
+        return Constant.CAPABILITIES_INVALID;
     }
 
     /**
@@ -235,11 +235,11 @@ public class NetworkUtils {
         // config.SSID = SSID;
 
 
-        if (type.equals(Constant.WifiCipherType_NOPASS)) {// nopass
+        if (type.equals(Constant.CAPABILITIES_NOPASS)) {// nopass
             // config.wepKeys[0] = "";
             config.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
             // config.wepTxKeyIndex = 0;
-        } else if (type.equals(Constant.WifiCipherType_WEP)) {// wep
+        } else if (type.equals(Constant.CAPABILITIES_WEP)) {// wep
             if (!TextUtils.isEmpty(password)) {
                 if (isHexWepKey(password)) {
                     config.wepKeys[0] = password;
@@ -251,7 +251,7 @@ public class NetworkUtils {
             config.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.SHARED);
             config.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
             config.wepTxKeyIndex = 0;
-        } else if (type.equals(Constant.WifiCipherType_WPA)) {// wpa
+        } else if (type.equals(Constant.CAPABILITIES_WPA)) {// wpa
             config.preSharedKey = "\"" + password + "\"";
             config.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
             config.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);

@@ -144,11 +144,11 @@ public class WifiActivity extends AppCompatActivity {
                  * 【WiFi扫描】ChinaNet-KJwX，加密= [WPA2-PSK-CCMP+TKIP][RSN-PSK-CCMP+TKIP][WPA-PSK-CCMP+TKIP][ESS][WPS]
                  * 【WiFi扫描】直播专线_5G，加密= [WPA2-PSK-CCMP][RSN-PSK-CCMP][WPA-PSK-CCMP][ESS][WPS]
                  */
-                if (StringUtils.containsByUpper(capabilities, Constant.WifiCipherType_WPA)){
+                if (StringUtils.containsByUpper(capabilities, Constant.CAPABILITIES_WPA)){
                     LogUtils.w("【WiFi加密】WPA= " + selected.SSID);
                     boolean b = ConnectTest.wifi连接WPA加密_connectToWPAWiFi(this, selected.SSID, password);
                     LogUtils.w("【】连接成功= " + b);
-                } else if (StringUtils.containsByUpper(capabilities, Constant.WifiCipherType_WEP)) {
+                } else if (StringUtils.containsByUpper(capabilities, Constant.CAPABILITIES_WEP)) {
                     LogUtils.w("【WiFi加密】WEP= " + selected.SSID);
                     boolean b = ConnectTest.wifi连接WEP加密_connectToWEPWiFi(this, selected.SSID, password);
                     LogUtils.w("【】连接成功= " + b);

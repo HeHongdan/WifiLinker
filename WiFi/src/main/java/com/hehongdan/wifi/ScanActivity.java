@@ -6,6 +6,9 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.scan.ScannerListener;
 import android.net.wifi.scan.WifiScanner;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.blankj.utilcode.log.LogUtils;
@@ -34,6 +37,13 @@ public class ScanActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan);
+        Button btGoConnect = findViewById(R.id.btGoConnect);
+        btGoConnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ConnectActivity.start(ScanActivity.this, "");
+            }
+        });
 
         WifiScanner.getInstance()
                 .setListener(new ScannerListener() {
